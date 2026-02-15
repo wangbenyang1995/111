@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <title>外卖服务</title>
+    <style>
+        /* 重置一些默认样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue', Arial, sans-serif;
+            background-color: #f4f4f4;
+            padding-bottom: 70px; /* 给底部栏留足空间 */
+            font-size: 14px;
+            position: relative; /* 防止子元素定位异常 */
+        }
+        header {
+            background-color: #ff6347;
+            color: white;
+            padding: 12px 0;
+            text-align: center;
+            font-size: 18px;
+            font-weight: bold;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+        /* 分类导航 - 移动端横向滚动 */
+        .category-nav {
+            display: flex;
+            background-color: #fff;
+            padding: 8px 10px;
+            border-bottom: 1px solid #e0e0e0;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            white-space: nowrap;
+            gap: 5px;
+            z-index: 998;
+            position: relative;
+        }
+        .category-nav::-webkit-scrollbar {
+            display: none;
+        }
+        .category-nav button {
+            background-color: transparent;
+            border: none;
+            padding: 8px 15px;
+            font-size: 14px;
+            cursor: pointer;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+        .category-nav button:hover {
+            background-color: #f5f5f5;
+        }
+        .category-nav button.active {
+            background-color: #ff6347;
+            color: white;
+        }
+        /* 菜单区 - 移动端适配 */
+        .menu {
+            display: flex;
+            flex-wrap: wrap;
+            padding: 10px;
+            gap: 8px;
+        }
+        .menu-item {
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
+            width: calc(50% - 4px);
+            overflow: hidden;
+            transition: transform 0.2s ease;
+        }
+        .menu-item.hide {
+            display: none;
+        }
+        .menu-item:hover {
+            transform: translateY(-2px);
+        }
+        .menu-item img {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+        }
+        .item-info {
+            padding: 10px;
+            text-align: center;
+        }
+        .item-info h3 {
+            font-size: 15px;
+            margin-bottom: 5px;
+            color: #333;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .item-info p {
+            font-size: 12px;
+            color: #777;
+            height: 18px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .price {
+            font-size: 16px;
+            color: #ff6347;
+            font-weight: bold;
+            margin-top: 8px;
+        }
+        .order-btn {
+            background-color: #ff6347;
+            color: white;
+            padding: 8px 0;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            margin-top: 8px;
+            transition: background-color 0.2s ease;
+        }
+        .order-btn:hover {
+            background-color: #ff4500;
+        }
+        /* 底部固定栏 - 购物车在左下角 */
+        .bottom-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            height: 60px;
+            background-color: #fff;
+            display: flex;
+            align-items: center;
+            padding: 0 15px; /* 左右内边距 */
+            border-top: 1px solid #e0e0e0;
+            z-index: 998; /* 确保在最上层，不被遮挡 */
+        }
+        /* 购物车按钮 - 固定在左下角 */
+        .cart-btn {
+            background-color: #ff6347;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            /* 强制显示，防止被压缩 */
+            flex-shrink: 0; 
+        }
+        .cart-count {
+            background-color: white;
+            color: #ff6347;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            font-size: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* 确保数字角标显示 */
+            min-width: 18px;
+            min-height: 18px;
+        }
+        /* 购物车弹窗 - 移动端适配 */
+        .cart-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: flex-end;
+            align-items: stretch;
+            z-index: 1000;
+        }
+        .cart-content {
+            background-color: #fff;
+            width: 90%;
+            max-width: 350px;
+            height: 100%;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        .cart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .cart-header h2 {
+            color: #ff6347;
+            font-size: 18px;
+        }
+        .close-cart {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #777;
+        }
+        .cart-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #f5f5f5;
+            font-size: 14px;
+        }
+        .cart-total {
+            margin-top: 15px;
+            text-align: right;
+            font-size: 16px;
+            font-weight: bold;
+            color: #ff6347;
+        }
+        .empty-cart {
+            text-align: center;
+            padding: 20px;
+            color: #777;
+            font-size: 14px;
+        }
+        .checkout-btn {
+            background-color: #ff6347;
+            color: white;
+            border: none;
+            padding: 12px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 20px;
+            width: 100%;
+            position: sticky;
+            bottom: 0;
+        }
+        .checkout-btn:hover {
+            background-color: #ff4500;
+        }
+        /* 订单确认弹窗 */
+        .order-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+        .order-content {
+            background-color: #fff;
+            width: 90%;
+            max-width: 350px;
+            border-radius: 8px;
+            padding: 20px;
+            position: relative;
+        }
+        .order-content h3 {
+            color: #ff6347;
+            font-size: 18px;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        .order-items {
+            max-height: 200px;
+            overflow-y: auto;
+            margin-bottom: 15px;
+        }
+        .order-total {
+            font-size: 16px;
+            font-weight: bold;
+            color: #ff6347;
+            text-align: right;
+            margin-bottom: 20px;
+            padding-top: 10px;
+            border-top: 1px solid #f5f5f5;
+        }
+        .pay-methods {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+        }
+        .pay-method {
+            text-align: center;
+            cursor: pointer;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #e0e0e0;
+            width: 45%;
+        }
+        .pay-method.active {
+            border-color: #ff6347;
+            background-color: #fff5f3;
+        }
+        .pay-method img {
+            width: 40px;
+            height: 40px;
+            margin-bottom: 5px;
+        }
+        .pay-btn {
+            background-color: #ff6347;
+            color: white;
+            border: none;
+            padding: 12px 0;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+        }
+        .close-order {
+            background: none;
+            border: none;
+            font-size: 20px;
+            cursor: pointer;
+            color: #777;
+            position: absolute;
+            top: 10px;
+            right: 10px;
+        }
+        /* 支付结果提示 */
+        .pay-result {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: rgba(0,0,0,0.8);
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            z-index: 9999;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        外卖平台
+    </header>
+
+    <div class="category-nav">
+        <button class="active" data-category="all">全部</button>
+        <button data-category="炸鸡">炸鸡</button>
+        <button data-category="汉堡">汉堡</button>
+        <button data-category="沙拉">沙拉</button>
+        <button data-category="小吃">小吃</button>
+        <button data-category="饮品">饮品</button>
+        <button data-category="米饭">米饭</button>
+        <button data-category="面食">面食</button>
+        <button data-category="汤品">汤品</button>
+        <button data-category="甜品">甜品</button>
+        <button data-category="烧烤">烧烤</button>
+    </div>
+
+    <section class="menu">
+        <div class="menu-item" data-category="炸鸡">
+            <img src="https://via.placeholder.com/280x180?text=%E9%9B%85%E7%82%B9" alt="香辣炸鸡">
+            <div class="item-info">
+                <h3>香辣炸鸡</h3>
+                <p>外脆内嫩，香气四溢！</p>
+                <div class="price">¥35</div>
+                <button class="order-btn" onclick="addToCart('香辣炸鸡', 35)">立即订购</button>
+            </div>
+        </div>
+        <div class="menu-item" data-category="汉堡">
+            <img src="https://via.placeholder.com/280x180?text=%E8%8B%B1%E6%96%AF%E9%BB%91%E9%B9%BF%E6%96%AF" alt="牛肉汉堡">
+            <div class="item-info">
+                <h3>牛肉汉堡</h3>
+                <p>优质牛肉，口感丰富！</p>
+                <div class="price">¥28</div>
+                <button class="order-btn" onclick="addToCart('牛肉汉堡', 28)">立即订购</button>
+            </div>
+        </div>
+        <div class="menu-item" data-category="沙拉">
+            <img src="https://via.placeholder.com/280x180?text=%E8%94%AC%E8%8F%9C%E6%B2%99%E6%8B%89" alt="蔬菜沙拉">
+            <div class="item-info">
+                <h3>蔬菜沙拉</h3>
+                <p>新鲜蔬菜，清爽健康！</p>
+                <div class="price">¥18</div>
+                <button class="order-btn" onclick="addToCart('蔬菜沙拉', 18)">立即订购</button>
+            </div>
+        </div>
+        <div class="menu-item" data-category="小吃">
+            <img src="https://via.placeholder.com/280x180?text=%E5%B0%8F%E5%90%83" alt="小吃">
+            <div class="item-info">
+                <h3>空白小吃</h3>
+                <p>暂无描述</p>
+                <div class="price">¥0</div>
+                <button class="order-btn" onclick="addToCart('空白小吃', 0)">立即订购</button>
+            </div>
+        </div>
+        <div class="menu-item" data-category="饮品">
+            <img src="https://via.placeholder.com/280x180?text=%E9%A5%AE%E5%93%81" alt="饮品">
+            <div class="item-info">
+                <h3>空白饮品</h3>
+                <p>暂无描述</p>
+                <div class="price">¥0</div>
+                <button class="order-btn" onclick="addToCart('空白饮品', 0)">立即订购</button>
+            </div>
+        </div>
+        <div class="menu-item" data-category="米饭">
+            <img src="https://via.placeholder.com/280x180?text=%E7%B1%B3%E9%A5%AD" alt="米饭">
+            <div class="item-info">
+                <h3>空白米饭</h3>
+                <p>暂无描述</p>
+                <div class="price">¥0</div>
+                <button class="order-btn" onclick="addToCart('空白米饭', 0)">立即订购</button>
+            </div>
+        </div>
+        <div class="menu-item" data-category="面食">
+            <img src="https://via.placeholder.com/280x180?text=%E9%9D%A2%E9%A3%9F" alt="面食">
+            <div class="item-info">
+                <h3>空白面食</h3>
+                <p>暂无描述</p>
+                <div class="price">¥0</div>
+                <button class="order-btn" onclick="addToCart('空白面食', 0)">立即订购</button>
+            </div>
+        </div>
+        <div class="menu-item" data-category="汤品">
+            <img src="https://via.placeholder.com/280x180?text=%E6%B1%A4%E5%93%81" alt="汤品">
+            <div class="item-info">
+                <h3>空白汤品</h3>
+                <p>暂无描述</p>
+                <div class="price">¥0</div>
+                <button class="order-btn" onclick="addToCart('空白汤品', 0)">立即订购</button>
+            </div>
+        </div>
+        <div class="menu-item" data-category="甜品">
+            <img src="https://via.placeholder.com/280x180?text=%E7%94%9C%E5%93%81" alt="甜品">
+            <div class="item-info">
+                <h3>空白甜品</h3>
+                <p>暂无描述</p>
+                <div class="price">¥0</div>
+                <button class="order-btn" onclick="addToCart('空白甜品', 0)">立即订购</button>
+            </div>
+        </div>
+        <div class="menu-item" data-category="烧烤">
+            <img src="https://via.placeholder.com/280x180?text=%E7%83%A4%E7%81%AB" alt="烧烤">
+            <div class="item-info">
+                <h3>空白烧烤</h3>
+                <p>暂无描述</p>
+                <div class="price">¥0</div>
+                <button class="order-btn" onclick="addToCart('空白烧烤', 0)">立即订购</button>
+            </div>
+        </div>
+    </section>
+
+    <!-- 底部栏：购物车固定在左下角 -->
+    <div class="bottom-bar">
+        <div class="cart-btn" onclick="openCartModal()">
+            购物车
+            <span class="cart-count" id="cartCount">0</span>
+        </div>
+    </div>
+
+    <!-- 购物车弹窗 -->
+    <div class="cart-modal" id="cartModal">
+        <div class="cart-content">
+            <div class="cart-header">
+                <h2>我的购物车</h2>
+                <button class="close-cart" onclick="closeCartModal()">×</button>
+            </div>
+            <div id="cartItems"></div>
+            <div class="cart-total" id="cartTotal">总计: ¥0</div>
+            <button class="checkout-btn" onclick="checkout()">去结算</button>
+        </div>
+    </div>
+
+    <!-- 订单确认弹窗 -->
+    <div class="order-modal" id="orderModal">
+        <div class="order-content">
+            <button class="close-order" onclick="closeOrderModal()">×</button>
+            <h3>确认订单</h3>
+            <div class="order-items" id="orderItems"></div>
+            <div class="order-total" id="orderTotal">总计: ¥0</div>
+            <div class="pay-methods">
+                <div class="pay-method active" onclick="selectPayMethod('wechat')">
+                    <img src="https://cdn.icon-icons.com/icons2/2699/PNG/512/wechat_logo_icon_170874.png" alt="微信支付">
+                    <div>微信支付</div>
+                </div>
+                <div class="pay-method" onclick="selectPayMethod('alipay')">
+                    <img src="https://cdn.icon-icons.com/icons2/2699/PNG/512/alipay_logo_icon_170872.png" alt="支付宝支付">
+                    <div>支付宝支付</div>
+                </div>
+            </div>
+            <button class="pay-btn" onclick="jumpToPayPage()">立即支付</button>
+        </div>
+    </div>
+
+    <!-- 支付结果提示 -->
+    <div class="pay-result" id="payResult"></div>
+
+    <script>
+        let cart = [];
+        let selectedPayMethod = 'wechat'; // 默认微信支付
+        const categoryButtons = document.querySelectorAll('.category-nav button');
+        const menuItems = document.querySelectorAll('.menu-item');
+        const cartModal = document.getElementById('cartModal');
+        const cartCountElement = document.getElementById('cartCount');
+
+        // 初始化分类筛选
+        categoryButtons.forEach(btn => {
+            btn.addEventListener('click', function() {
+                categoryButtons.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                const category = this.getAttribute('data-category');
+                filterMenuItems(category);
+            });
+        });
+
+        // 菜品筛选
+        function filterMenuItems(category) {
+            menuItems.forEach(item => {
+                if (category === 'all' || item.getAttribute('data-category') === category) {
+                    item.classList.remove('hide');
+                } else {
+                    item.classList.add('hide');
+                }
+            });
+        }
+
+        // 加入购物车
+        function addToCart(itemName, price) {
+            const existingItem = cart.find(item => item.itemName === itemName);
+            if (existingItem) {
+                existingItem.quantity += 1;
+            } else {
+                cart.push({ itemName, price, quantity: 1 });
+            }
+            updateCart();
+            showToast(`已加入【${itemName}】`);
+        }
+
+        // 更新购物车
+        function updateCart() {
+            const totalQuantity = cart.reduce((total, item) => total + item.quantity, 0);
+            cartCountElement.textContent = totalQuantity;
+
+            const cartItemsContainer = document.getElementById('cartItems');
+            const cartTotalElement = document.getElementById('cartTotal');
+            let cartHtml = '';
+            let totalPrice = 0;
+
+            if (cart.length === 0) {
+                cartHtml = '<div class="empty-cart">购物车空空如也~</div>';
+                totalPrice = 0;
+            } else {
+                cart.forEach(item => {
+                    const itemTotal = item.price * item.quantity;
+                    totalPrice += itemTotal;
+                    cartHtml += `
+                        <div class="cart-item">
+                            <span>${item.itemName} × ${item.quantity}</span>
+                            <span>¥${itemTotal}</span>
+                        </div>
+                    `;
+                });
+            }
+
+            cartItemsContainer.innerHTML = cartHtml;
+            cartTotalElement.textContent = `总计: ¥${totalPrice}`;
+        }
+
+        // 打开购物车弹窗
+        function openCartModal() {
+            updateCart();
+            cartModal.style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        // 关闭购物车弹窗
+        function closeCartModal() {
+            cartModal.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+
+        // 打开订单确认弹窗
+        function checkout() {
+            if (cart.length === 0) {
+                showToast('购物车为空，无法结算！');
+                return;
+            }
+            const orderItemsContainer = document.getElementById('orderItems');
+            const orderTotalElement = document.getElementById('orderTotal');
+            let orderHtml = '';
+            let totalPrice = 0;
+
+            cart.forEach(item => {
+                const itemTotal = item.price * item.quantity;
+                totalPrice += itemTotal;
+                orderHtml += `
+                    <div class="cart-item">
+                        <span>${item.itemName} × ${item.quantity}</span>
+                        <span>¥${itemTotal}</span>
+                    </div>
+                `;
+            });
+
+            orderItemsContainer.innerHTML = orderHtml;
+            orderTotalElement.textContent = `总计: ¥${totalPrice}`;
+            document.getElementById('orderModal').style.display = 'flex';
+            closeCartModal();
+        }
+
+        // 关闭订单弹窗
+        function closeOrderModal() {
+            document.getElementById('orderModal').style.display = 'none';
+        }
+
+        // 选择支付方式
+        function selectPayMethod(method) {
+            document.querySelectorAll('.pay-method').forEach(el => {
+                el.classList.remove('active');
+            });
+            event.target.closest('.pay-method').classList.add('active');
+            selectedPayMethod = method;
+        }
+
+        // 跳转支付页面
+        function jumpToPayPage() {
+            // 1. 生成唯一订单号（模拟）
+            const orderNo = 'ORDER_' + Date.now() + Math.random().toString(36).substr(2, 9);
+            // 2. 计算订单总金额
+            const totalPrice = cart.reduce((total, item) => total + (item.price * item.quantity), 0);
+            
+            // 3. 支付链接（替换为你的真实链接）
+            let payUrl = '';
+            if (selectedPayMethod === 'wechat') {
+                // 微信支付模拟链接
+                payUrl = `https://pay.weixin.qq.com/h5/applyment/mch/simple/welcome?orderNo=${orderNo}&totalPrice=${totalPrice}`;
+            } else if (selectedPayMethod === 'alipay') {
+                // 支付宝支付模拟链接
+                payUrl = `https://www.alipay.com/?orderNo=${orderNo}&totalPrice=${totalPrice}`;
+            }
+
+            // 4. 提示并跳转
+            showToast('正在跳转到支付页面...');
+            setTimeout(() => {
+                window.open(payUrl, '_blank'); 
+                // 模拟支付完成
+                setTimeout(() => {
+                    showPayResult('支付成功！订单号：' + orderNo);
+                    cart = []; 
+                    updateCart();
+                    closeOrderModal();
+                }, 5000);
+            }, 1500);
+        }
+
+        // 显示支付结果
+        function showPayResult(text) {
+            const payResultEl = document.getElementById('payResult');
+            payResultEl.textContent = text;
+            payResultEl.style.display = 'block';
+            setTimeout(() => {
+                payResultEl.style.display = 'none';
+            }, 3000);
+        }
+
+        // 轻提示
+        function showToast(text) {
+            let toast = document.createElement('div');
+            toast.style.position = 'fixed';
+            toast.style.top = '50%';
+            toast.style.left = '50%';
+            toast.style.transform = 'translate(-50%, -50%)';
+            toast.style.backgroundColor = 'rgba(0,0,0,0.7)';
+            toast.style.color = 'white';
+            toast.style.padding = '10px 20px';
+            toast.style.borderRadius = '4px';
+            toast.style.fontSize = '14px';
+            toast.style.zIndex = '9999';
+            toast.textContent = text;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.remove();
+            }, 2000);
+        }
+
+        // 点击弹窗外部关闭
+        window.addEventListener('click', function(e) {
+            if (e.target === cartModal) {
+                closeCartModal();
+            }
+        });
+
+        // 初始化：强制更新购物车显示，确保数字角标加载
+        updateCart();
+        // 确保底部栏和购物车按钮初始化显示
+        document.querySelector('.bottom-bar').style.display = 'flex';
+        document.querySelector('.cart-btn').style.display = 'flex';
+    </script>
+</body>
+</html>
